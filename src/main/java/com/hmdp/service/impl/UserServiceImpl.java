@@ -17,6 +17,10 @@ import redis.clients.jedis.Jedis;
 
 import javax.servlet.http.HttpSession;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+import static com.hmdp.utils.UserUtil.buildUserMap;
 
 /**
  * <p>
@@ -85,6 +89,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             msg.append("登录成功！");
         }
         session.setAttribute("user",user);
+
+        jedis.hset(RedisConstants.LOGIN_USER_KEY,buildUserMap(user));
+
         return Result.ok(user);
 
     }
