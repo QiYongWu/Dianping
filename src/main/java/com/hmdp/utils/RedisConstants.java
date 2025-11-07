@@ -41,4 +41,7 @@ public class RedisConstants {
     public static final String REDIS_KEY_USER_LOGIN_CODE = "user:login:code:";
 
     public static final String REDIS_CATCH_SHOP_KEY = "cache:shop:";
+
+    public static final String REDIS_CATCH_SHOP_TYPE_KEY = "cache:shop:type:";
+    public static final long CACHE_SHOP_TYPE_TTL = 600L;
 }

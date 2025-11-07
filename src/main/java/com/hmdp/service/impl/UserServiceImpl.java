@@ -17,6 +17,7 @@ import redis.clients.jedis.Jedis;
 
 import javax.servlet.http.HttpSession;
 import java.time.LocalDateTime;
+import java.util.Collection;
 
 import static com.hmdp.utils.BeanUtil.buildUserMap;
 

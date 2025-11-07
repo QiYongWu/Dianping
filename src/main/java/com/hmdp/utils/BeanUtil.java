@@ -1,6 +1,7 @@
 package com.hmdp.utils;
 
 import com.hmdp.entity.Shop;
+import com.hmdp.entity.ShopType;
 import com.hmdp.entity.User;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
@@ -71,5 +72,26 @@ public class BeanUtil {
         shop.setUpdateTime(LocalDateTime.parse(shopMap.get("updateTime")));
         shop.setDistance(StringUtils.isEmpty(shopMap.get("distance"))? null : Double.valueOf(shopMap.get("distance")));
         return shop;
+    }
+
+    public static Map<String, String> buildShopTypeMap(ShopType shopType) {
+        Map<String, String> shopTypeMap = new HashMap<>();
+        shopTypeMap.put("id", shopType.getId().toString());
+        shopTypeMap.put("name", shopType.getName());
+        shopTypeMap.put("icon", shopType.getIcon());
+        shopTypeMap.put("sort", shopType.getSort().toString());
+        shopTypeMap.put("createTime", shopType.getCreateTime().toString());
+        shopTypeMap.put("updateTime", shopType.getUpdateTime().toString());
+        return shopTypeMap;
+    }
+    public static ShopType buildShopType(Map<String, String> shopTypeMap) {
+        ShopType shopType = new ShopType();
+        shopType.setId(Long.valueOf(shopTypeMap.get("id")));
+        shopType.setName(shopTypeMap.get("name"));
+        shopType.setIcon(shopTypeMap.get("icon"));
+        shopType.setSort(Integer.valueOf(shopTypeMap.get("sort")));
+        shopType.setCreateTime(LocalDateTime.parse(shopTypeMap.get("createTime")));
+        shopType.setUpdateTime(LocalDateTime.parse(shopTypeMap.get("updateTime")));
+        return shopType;
     }
 }

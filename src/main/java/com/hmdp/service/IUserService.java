@@ -6,6 +6,7 @@ import com.hmdp.dto.Result;
 import com.hmdp.entity.User;
 
 import javax.servlet.http.HttpSession;
+import java.util.Collection;
 
 /**
  * <p>
@@ -18,7 +19,7 @@ import javax.servlet.http.HttpSession;
 public interface IUserService extends IService<User> {
 
     Result sendCode(String phone, HttpSession session);
-    Result login(LoginFormDTO loginForm, HttpSession session);
+    Result  login(LoginFormDTO loginForm, HttpSession session);
 
-    Result logout(HttpSession session);
+    Result  logout(HttpSession session);
 }
