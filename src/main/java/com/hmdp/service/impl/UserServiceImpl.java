@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.LoginFormDTO;
 import com.hmdp.dto.Result;
-import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.pool.JedisConnectPool;
@@ -85,18 +84,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }else{
             msg.append("登录成功！");
         }
-
-        UserDTO userDTO = new UserDTO();
-        userDTO.setId(user.getId());
-        userDTO.setNickName(user.getNickName());
-        userDTO.setIcon(user.getIcon());
-        UserHolder.saveUser(userDTO);
-
-        return Result.success(msg.toString());
+        session.setAttribute("user",user);
+        return Result.ok(user);
 
     }
 
-
+    @Override
+    public Result logout(HttpSession session) {
+        UserHolder.removeUser();
+        session.setAttribute("user",null);
+        return Result.ok();
+    }
 
 
 }
