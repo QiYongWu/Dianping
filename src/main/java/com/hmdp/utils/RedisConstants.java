@@ -8,7 +8,7 @@ public class RedisConstants {
 
     public static final Long CACHE_NULL_TTL = 2L;
 
-    public static final Long CACHE_SHOP_TTL = 30L;
+    public static final Long CACHE_SHOP_TTL = 600L;
     public static final String CACHE_SHOP_KEY = "cache:shop:";
 
     public static final String LOCK_SHOP_KEY = "lock:shop:";
@@ -21,4 +21,24 @@ public class RedisConstants {
     public static final String USER_SIGN_KEY = "sign:";
 
     public static final String LOGIN_USER_KEY = "login:user:";
+
+    public static final Long REDIS_TOKEN_EXPIRE = 3600L;
+
+    //########################### config info ###################################
+    public static final int REDIS_MAX_TOTAL = 8;
+    public static final int REDIS_MAX_IDLE = 8;
+    public static final int REDIS_MIN_IDLE = 0;
+    public static final int REDIS_CONNECT_TIMEOUT = 3000;
+
+    public static final String REDIS_HOST = "47.107.240.108";
+    public static final int REDIS_PORT = 6379;
+
+    public static final int REDIS_DATABASE = 0;
+
+    //############################ constant keys ###################################
+
+    //验证码
+    public static final String REDIS_KEY_USER_LOGIN_CODE = "user:login:code:";
+
+    public static final String REDIS_CATCH_SHOP_KEY = "cache:shop:";
 }

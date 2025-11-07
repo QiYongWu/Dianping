@@ -17,10 +17,8 @@ import redis.clients.jedis.Jedis;
 
 import javax.servlet.http.HttpSession;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
-import static com.hmdp.utils.UserUtil.buildUserMap;
+import static com.hmdp.utils.BeanUtil.buildUserMap;
 
 /**
  * <p>
@@ -46,7 +44,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         String verifyCode = RandomUtil.createFourVerifyCode();
         session.setAttribute("code", verifyCode);
 
-        jedis.setex(RedisConstant.REDIS_KEY_USER_LOGIN_CODE + phone + verifyCode, 120, verifyCode);
+        jedis.setex(RedisConstants.REDIS_KEY_USER_LOGIN_CODE + phone + verifyCode, 120, verifyCode);
 
         return Result.success("验证码已发送，2分钟后过期。");
     }
@@ -63,7 +61,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             return Result.fail("验证码错误");
         }
 
-        if(ObjectUtils.isEmpty(jedis.get(RedisConstant.REDIS_KEY_USER_LOGIN_CODE + loginForm.getPhone() + loginForm.getCode()))){
+        if(ObjectUtils.isEmpty(jedis.get(RedisConstants.REDIS_KEY_USER_LOGIN_CODE + loginForm.getPhone() + loginForm.getCode()))){
             return Result.fail("验证码已过期");
         }
 
@@ -90,10 +88,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
         session.setAttribute("user",user);
 
-        jedis.hset(RedisConstants.LOGIN_USER_KEY,buildUserMap(user));
+        String token  = RandomUtil.createUUID();
+        jedis.hset(RedisConstants.LOGIN_TOKEN_KEY + token , buildUserMap(user));
+        jedis.expire(RedisConstants.LOGIN_TOKEN_KEY + token, RedisConstants.REDIS_TOKEN_EXPIRE);
 
-        return Result.ok(user);
-
+        return Result.ok(token);
     }
 
     @Override

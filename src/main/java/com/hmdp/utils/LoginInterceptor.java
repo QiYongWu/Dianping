@@ -1,10 +1,7 @@
 package com.hmdp.utils;
 
-import cn.hutool.db.Session;
-import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.pool.JedisConnectPool;
-import org.apache.ibatis.annotations.Select;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -12,8 +9,6 @@ import redis.clients.jedis.Jedis;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import java.util.Map;
 
 public class LoginInterceptor implements HandlerInterceptor {
     private final Jedis jedis = JedisConnectPool.getJedis();
@@ -24,19 +19,35 @@ public class LoginInterceptor implements HandlerInterceptor {
      */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        HttpSession session = request.getSession();
-        Object user = session.getAttribute("user");
+        /**
+         * 基于Session登录
+         *
+            HttpSession session = request.getSession();
+            Object user = session.getAttribute("user");
+            if(ObjectUtils.isEmpty(user)){
+                UserHolder.removeUser();
+                return false;
+            }else{
+                UserHolder.saveUser(user);
+                return true;
+            }
+        */
 
-        if(!jedis.exists(RedisConstants.LOGIN_USER_KEY)){
+        UserHolder.removeUser();
+
+        String token = request.getHeader("Authorization");
+        if(ObjectUtils.isEmpty(token)){
             return false;
         }
-        Map<String,String> userMap = jedis.hgetAll(RedisConstants.LOGIN_USER_KEY);
-        if(ObjectUtils.isEmpty(user)){
+
+        if(!jedis.exists(RedisConstants.LOGIN_TOKEN_KEY+ token)){
             return false;
-        }else{
-            UserHolder.saveUser((User) user);
-            return true;
         }
+
+        jedis.expire(RedisConstants.LOGIN_TOKEN_KEY, RedisConstants.REDIS_TOKEN_EXPIRE);
+        User user = BeanUtil.buildUser(jedis.hgetAll(RedisConstants.LOGIN_TOKEN_KEY + token));
+        UserHolder.saveUser(user);
+        return true;
     }
 
 
