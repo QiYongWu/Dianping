@@ -3,6 +3,7 @@ package com.hmdp.service.impl;
 import cn.hutool.json.JSONString;
 import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.extension.conditions.query.QueryChainWrapper;
 import com.hmdp.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
@@ -20,6 +21,7 @@ import org.springframework.util.StringUtils;
 import redis.clients.jedis.Jedis;
 
 import java.io.Serializable;
+import java.time.LocalTime;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -75,31 +77,49 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         if(jedis.exists( RedisConstants.REDIS_CATCH_SHOP_KEY + id)){
 
             String shopStr = jedis.get(RedisConstants.REDIS_CATCH_SHOP_KEY + id);
+
             if(StringUtils.isEmpty(shopStr)){
                 return null;
             }
-            return JSONUtil.toBean(shopStr, Shop.class);
 
-        }else{
+            JSONObject shopJSONObject = (JSONObject) JSON.parse(shopStr);
+            LocalTime expire =LocalTime.parse(shopJSONObject.getString("expire"));
 
-            Shop shop = super.getById(id);
-            if(lock.tryLock()) {
-                try{
-                    if (shop == null) {
-                        jedis.set(RedisConstants.REDIS_CATCH_SHOP_KEY + id, "");
-                    } else {
-                        jedis.set(RedisConstants.REDIS_CATCH_SHOP_KEY + id, JSON.toJSONString(shop));
+
+            if(expire.isBefore(LocalTime.now())){
+                if(lock.tryLock()) {
+                    try {
+                        Shop shop = super.getById(id);
+                        JSONObject newShopJSONObject = (JSONObject) JSON.toJSON( shop);
+                        newShopJSONObject.put("expire", LocalTime.now().plusSeconds( RedisConstants.CACHE_SHOP_TTL));
+                        jedis.set(RedisConstants.REDIS_CATCH_SHOP_KEY + id, JSON.toJSONString(newShopJSONObject));
+                        return shop;
+                    }catch (Exception e){
+                        throw new RuntimeException( e);
+                    }finally {
+                        lock.unlock();
                     }
-                    jedis.expire(RedisConstants.REDIS_CATCH_SHOP_KEY + id, RedisConstants.CACHE_SHOP_TTL);
-                }catch (Exception e){
-                        e.printStackTrace();
-                }finally {
-                    lock.unlock();
+                }else{
+                    return JSONUtil.toBean(shopStr, Shop.class);
                 }
+            }else{
+                return JSONUtil.toBean(shopStr, Shop.class);
             }
 
+
+        }else{
+            Shop shop = super.getById(id);
+            if (shop == null) {
+                jedis.set(RedisConstants.REDIS_CATCH_SHOP_KEY + id, "");
+            } else {
+                JSONObject shopJSONObject = (JSONObject) JSON.toJSON( shop);
+                shopJSONObject.put("expire", LocalTime.now().plusSeconds( RedisConstants.CACHE_SHOP_TTL));
+                jedis.set(RedisConstants.REDIS_CATCH_SHOP_KEY + id, JSON.toJSONString(shopJSONObject));
+            }
             return shop;
         }
+
+
 
     }
 
