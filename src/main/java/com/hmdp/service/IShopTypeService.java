@@ -16,6 +16,4 @@ import java.util.List;
  */
 public interface IShopTypeService extends IService<ShopType> {
 
-    public List<ShopType> queryTypeList() ;
-
 }

@@ -57,7 +57,7 @@ public class ShopController {
      */
     @PutMapping
     public Result updateShop(@RequestBody Shop shop) {
-        // 写入数据库
+        // 写入数据库并删除缓存
         shopService.updateById(shop);
         return Result.ok();
     }

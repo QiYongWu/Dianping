@@ -27,9 +27,8 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
 
     private final Jedis jedis = JedisConnectPool.getJedis();
 
-
     @Override
-    public List<ShopType> queryTypeList() {
+    public List<ShopType> list() {
 
         if(jedis.exists(RedisConstants.REDIS_CATCH_SHOP_TYPE_KEY)){
 
@@ -40,10 +39,11 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
 
         }else {
 
-            List<ShopType> shopTypes = this.query().list();
+            List<ShopType> shopTypes = super.list();
             jedis.set(RedisConstants.REDIS_CATCH_SHOP_TYPE_KEY, JSON.toJSONString(shopTypes));
             jedis.expire(RedisConstants.REDIS_CATCH_SHOP_TYPE_KEY, RedisConstants.CACHE_SHOP_TYPE_TTL);
             return shopTypes;
+
         }
 
     }
