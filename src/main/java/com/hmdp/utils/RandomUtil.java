@@ -15,4 +15,11 @@ public class RandomUtil {
     public static String createUUID() {
         return ((UUID) UUID.randomUUID()).toString();
     }
+
+    /**
+     * 生产1-5的随机数
+     */
+    public static int createRandomNum(){
+        return (int)(Math.random()*5+1);
+    }
 }

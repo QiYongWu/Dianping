@@ -3,6 +3,7 @@ package com.hmdp.service.impl;
 import cn.hutool.json.JSONString;
 import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.extension.conditions.query.QueryChainWrapper;
 import com.hmdp.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
 import com.hmdp.pool.JedisConnectPool;
@@ -90,4 +91,5 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         }
 
     }
+
 }
