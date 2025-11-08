@@ -43,5 +43,9 @@ public class RedisConstants {
     public static final String REDIS_CATCH_SHOP_KEY = "cache:shop:";
 
     public static final String REDIS_CATCH_SHOP_TYPE_KEY = "cache:shop:type:";
+
     public static final long CACHE_SHOP_TYPE_TTL = 600L + RandomUtil.createRandomNum() * 60;
+
+    public static final String CATCH_LOCK_KEY = "catch:shop:lock";
+    public static final long CATCH_LOCK_TTL = 10L;
 }
