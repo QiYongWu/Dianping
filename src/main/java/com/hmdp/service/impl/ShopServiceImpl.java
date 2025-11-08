@@ -23,6 +23,8 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * <p>
@@ -39,6 +41,8 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     private final ExecutorService executorService = ThreadPool.getCacheDeletePool();
 
     private final Jedis jedis = JedisConnectPool.getJedis();
+
+    private final Lock lock = new ReentrantLock();
 
 
 
@@ -79,13 +83,20 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         }else{
 
             Shop shop = super.getById(id);
-            if(shop == null){
-                jedis.set(RedisConstants.REDIS_CATCH_SHOP_KEY + id,"");
-            }else {
-                jedis.set(RedisConstants.REDIS_CATCH_SHOP_KEY + id, JSON.toJSONString(shop));
+            if(lock.tryLock()) {
+                try{
+                    if (shop == null) {
+                        jedis.set(RedisConstants.REDIS_CATCH_SHOP_KEY + id, "");
+                    } else {
+                        jedis.set(RedisConstants.REDIS_CATCH_SHOP_KEY + id, JSON.toJSONString(shop));
+                    }
+                    jedis.expire(RedisConstants.REDIS_CATCH_SHOP_KEY + id, RedisConstants.CACHE_SHOP_TTL);
+                }catch (Exception e){
+                        e.printStackTrace();
+                }finally {
+                    lock.unlock();
+                }
             }
-
-            jedis.expire(RedisConstants.REDIS_CATCH_SHOP_KEY + id, RedisConstants.CACHE_SHOP_TTL);
 
             return shop;
         }
