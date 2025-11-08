@@ -1,5 +1,8 @@
 package com.hmdp.service.impl;
 
+import cn.hutool.json.JSONString;
+import cn.hutool.json.JSONUtil;
+import com.alibaba.fastjson.JSON;
 import com.hmdp.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
 import com.hmdp.pool.JedisConnectPool;
@@ -12,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 import redis.clients.jedis.Jedis;
 
 import java.io.Serializable;
@@ -53,6 +57,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         return save;
     }
 
+
     /**
      * 重写getById方法
      * @description 先查询缓存，若未命中，再查询数据库，并将数据写入缓存
@@ -63,16 +68,23 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     public Shop getById(Serializable id) {
 
         if(jedis.exists( RedisConstants.REDIS_CATCH_SHOP_KEY + id)){
-            Map<String, String> shopMap = jedis.hgetAll(RedisConstants.REDIS_CATCH_SHOP_KEY + id);
-            return BeanUtil.buildShop(shopMap);
-        }else{
-            Shop shop = super.getById(id);
-            if(ObjectUtils.isEmpty( shop)){
-                return shop;
-            }else {
-                jedis.hset(RedisConstants.REDIS_CATCH_SHOP_KEY + id, BeanUtil.buildShopMap(shop));
-                jedis.expire(RedisConstants.REDIS_CATCH_SHOP_KEY + id, RedisConstants.CACHE_SHOP_TTL);
+
+            String shopStr = jedis.get(RedisConstants.REDIS_CATCH_SHOP_KEY + id);
+            if(StringUtils.isEmpty(shopStr)){
+                return null;
             }
+            return JSONUtil.toBean(shopStr, Shop.class);
+
+        }else{
+
+            Shop shop = super.getById(id);
+            if(shop == null){
+                jedis.set(RedisConstants.REDIS_CATCH_SHOP_KEY + id,"");
+            }else {
+                jedis.set(RedisConstants.REDIS_CATCH_SHOP_KEY + id, JSON.toJSONString(shop));
+            }
+
+            jedis.expire(RedisConstants.REDIS_CATCH_SHOP_KEY + id, RedisConstants.CACHE_SHOP_TTL);
 
             return shop;
         }

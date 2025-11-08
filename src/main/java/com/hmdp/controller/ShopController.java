@@ -28,16 +28,6 @@ public class ShopController {
     public IShopService shopService;
 
     /**
-     * 根据id查询商铺信息
-     * @param id 商铺id
-     * @return 商铺详情数据
-     */
-    @GetMapping("/{id}")
-    public Result queryShopById(@PathVariable("id") Long id) {
-        return Result.ok(shopService.getById(id));
-    }
-
-    /**
      * 新增商铺信息
      * @param shop 商铺数据
      * @return 商铺id
@@ -61,6 +51,23 @@ public class ShopController {
         shopService.updateById(shop);
         return Result.ok();
     }
+
+    /**
+     * 根据id查询商铺信息
+     * @param id 商铺id
+     * @return 商铺详情数据
+     */
+    @GetMapping("/{id}")
+    public Result queryShopById(@PathVariable("id") Long id) {
+        Shop shop = shopService.getById(id);
+        if(shop == null){
+            return Result.fail("店铺不存在！");
+        }else{
+            return Result.ok(shop);
+        }
+    }
+
+
 
     /**
      * 根据商铺类型分页查询商铺信息
