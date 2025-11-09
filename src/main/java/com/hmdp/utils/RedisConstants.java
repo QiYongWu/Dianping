@@ -48,4 +48,7 @@ public class RedisConstants {
 
     public static final String CATCH_LOCK_KEY = "catch:shop:lock";
     public static final long CATCH_LOCK_TTL = 10L;
+    public static final String REDIS_CATCH_VOUCHER_LIST_KEY = "cache:voucher:list";
+    public static final long CACHE_VOUCHERS_LIST_TTL = 300L + RandomUtil.createRandomNum() * 60;
+    public static final String PROPERTY_EXPIRE_KEY = "expire:time" ;
 }
