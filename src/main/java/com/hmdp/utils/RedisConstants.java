@@ -25,7 +25,7 @@ public class RedisConstants {
     public static final Long REDIS_TOKEN_EXPIRE = 3600L;
 
     //########################### config info ###################################
-    public static final int REDIS_MAX_TOTAL = 8;
+    public static final int REDIS_MAX_TOTAL = 208;
     public static final int REDIS_MAX_IDLE = 8;
     public static final int REDIS_MIN_IDLE = 0;
     public static final int REDIS_CONNECT_TIMEOUT = 3000;
@@ -48,7 +48,7 @@ public class RedisConstants {
 
     public static final String CATCH_LOCK_KEY = "catch:shop:lock";
     public static final long CATCH_LOCK_TTL = 10L;
-    public static final String REDIS_CATCH_VOUCHER_LIST_KEY = "cache:voucher:list";
+    public static final String REDIS_CATCH_VOUCHER_LIST_KEY = "cache:voucher:list:";
     public static final long CACHE_VOUCHERS_LIST_TTL = 300L + RandomUtil.createRandomNum() * 60;
     public static final String PROPERTY_EXPIRE_KEY = "expire:time" ;
 }

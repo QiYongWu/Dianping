@@ -37,10 +37,12 @@ public class LoginInterceptor implements HandlerInterceptor {
 
         String token = request.getHeader("Authorization");
         if(ObjectUtils.isEmpty(token)){
+            response.sendError(401,"请先登录！");
             return false;
         }
 
-        if(!jedis.exists(RedisConstants.LOGIN_TOKEN_KEY+ token)){
+        if(!jedis.exists(RedisConstants.LOGIN_TOKEN_KEY + token)){
+            response.sendError(401,"请先登录！");
             return false;
         }
 

@@ -42,19 +42,20 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
 
     @Override
     public Result queryVoucherOfShop(Long shopId) {
-        String voucherListStr = jedis.get(RedisConstants.REDIS_CATCH_VOUCHER_LIST_KEY);
+        String voucherListStr = jedis.get(RedisConstants.REDIS_CATCH_VOUCHER_LIST_KEY + shopId);
         if(StringUtils.isEmpty(voucherListStr)){
             // 查询优惠券信息
             List<Voucher> vouchers = getBaseMapper().queryVoucherOfShop(shopId);
 
-            RedisClient.setExToJSONStr(RedisConstants.REDIS_CATCH_VOUCHER_LIST_KEY, RedisConstants.CACHE_VOUCHERS_LIST_TTL,
+            //缓存商铺的优惠卷信息
+            RedisClient.setExToJSONStr(RedisConstants.REDIS_CATCH_VOUCHER_LIST_KEY + shopId, RedisConstants.CACHE_VOUCHERS_LIST_TTL,
                     ObjectUtils.isNotEmpty(vouchers)? vouchers : "");
 
             // 返回结果
             return Result.ok(vouchers);
 
         }else{
-            return Result.ok(RedisClient.getBeanList(RedisConstants.REDIS_CATCH_VOUCHER_LIST_KEY));
+            return Result.ok(RedisClient.getBeanList(RedisConstants.REDIS_CATCH_VOUCHER_LIST_KEY + shopId));
         }
 
 
