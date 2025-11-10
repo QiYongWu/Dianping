@@ -25,6 +25,28 @@ public class RedisClient {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+    /**
+     * 分布式锁
+     * @param prefix 业务标识
+     * @return
+     */
+    @Transactional
+    public boolean tryLock(String prefix){
+        if(redisTemplate.hasKey(RedisConstants.REDIS_DISTRIBUTED_LOCK_KEY + prefix)){
+            return false;
+        }else{
+            redisTemplate.opsForValue().set(RedisConstants.REDIS_DISTRIBUTED_LOCK_KEY + prefix, "1");
+            redisTemplate.expire(RedisConstants.REDIS_DISTRIBUTED_LOCK_KEY + prefix, Duration.ofSeconds(RedisConstants.REDIS_DISTRIBUTED_LOCK_TTL));
+            return true;
+        }
+    }
+
+    public void unlock(String prefix){
+        redisTemplate.delete(RedisConstants.REDIS_DISTRIBUTED_LOCK_KEY + prefix);
+    }
+
+
+
     //异步锁
     @Transactional
     public boolean tryLock(){

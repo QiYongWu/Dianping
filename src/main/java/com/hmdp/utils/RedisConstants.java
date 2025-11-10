@@ -23,6 +23,11 @@ public class RedisConstants {
 
     public static final String CATCH_SHOP_TYPE_KEY = "cache:shop:type:";
 
+    //分布式锁
+    public static final String REDIS_DISTRIBUTED_LOCK_KEY = "lock:distributed:";
+    public static final long REDIS_DISTRIBUTED_LOCK_TTL = 15L;
+
+
     //异步锁
     public static final String REDIS_ASYNC_LOCK_KEY = "lock:async:";
 

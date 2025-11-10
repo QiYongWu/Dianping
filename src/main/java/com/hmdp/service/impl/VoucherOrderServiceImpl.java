@@ -1,6 +1,7 @@
 package com.hmdp.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.hmdp.client.RedisClient;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.SeckillVoucher;
 import com.hmdp.entity.User;
@@ -64,6 +65,8 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     @Autowired
     private RedisIdWorker redisIdWorker;
+    @Autowired
+    private RedisClient redisClient;
 
     //秒杀优惠卷卷并生产订单
     @Override
@@ -89,10 +92,11 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     private Long createVoucherOrder(Long voucherId) throws RuntimeException{
         boolean checkFlag = false;
+        User user = UserHolder.getUser();
+        String prefix = "create_voucher_order:" + voucherId  + "_user:" + user.getId();
         for (int i = 0; i < SystemConstants.MAX_TRY_LOCK_COUNT; i++) {
-            if(lock.tryLock()) {
+            if(redisClient.tryLock(prefix)) {
                 try {
-                    User user = UserHolder.getUser();
                     Integer count = voucherOrderMapper.selectCount
                             (new QueryWrapper<VoucherOrder>()
                                     .eq("user_id", user.getId())
@@ -102,10 +106,11 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                         return null;
                     }
                     checkFlag = true;
+                    break;
                 }catch (Exception e){
                     log.error("出错！" + e.getMessage());
                 }finally {
-                    lock.unlock();
+                    redisClient.unlock(prefix);
                 }
             }else{
                 Time.sleep(1);
