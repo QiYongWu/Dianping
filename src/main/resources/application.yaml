@@ -18,10 +18,10 @@ spring:
     database: 3  # 注意：是 database 不是 db-index
     lettuce:
       pool:
-        max-active: 100
-        max-idle: 100
+        max-active: 2000
+        max-idle: 2000
         min-idle: 10
-        time-between-eviction-runs: 3000ms
+        time-between-eviction-runs: 6000ms
 
   jackson:
     default-property-inclusion: non_null # JSON处理时忽略非空字段
