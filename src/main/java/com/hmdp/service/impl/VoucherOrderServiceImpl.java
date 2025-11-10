@@ -1,7 +1,9 @@
 package com.hmdp.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.SeckillVoucher;
+import com.hmdp.entity.User;
 import com.hmdp.entity.Voucher;
 import com.hmdp.entity.VoucherOrder;
 import com.hmdp.mapper.VoucherOrderMapper;
@@ -25,6 +27,7 @@ import redis.clients.jedis.Jedis;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -85,6 +88,16 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     }
 
     private Long createVoucherOrder(Long voucherId) throws RuntimeException{
+
+        User user = UserHolder.getUser();
+        Integer count = voucherOrderMapper.selectCount
+                (new QueryWrapper<VoucherOrder>()
+                .eq("user_id", user.getId())
+                .eq("voucher_id", voucherId));
+        if(count > 0){
+            log.error("用户:{{}}已购买过此优惠卷！",user.getId());
+            return null;
+        }
 
         //获取秒杀优惠卷信息
         SeckillVoucher voucher = seckillVoucherService.getById(voucherId);
