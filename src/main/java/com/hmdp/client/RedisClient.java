@@ -1,63 +1,82 @@
 package com.hmdp.client;
 
-import cn.hutool.json.JSONUtil;
+
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.hmdp.pool.JedisConnectPool;
-import com.hmdp.utils.RedisConstants;
-import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
-import redis.clients.jedis.Jedis;
 
+import com.hmdp.utils.RedisConstants;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+
+import java.time.Duration;
 import java.time.LocalTime;
 
 @Component
+@EnableTransactionManagement
 public class RedisClient {
 
-    private static final Jedis jedis = JedisConnectPool.getJedis();
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
-    public static boolean tryLock(){
-        if(jedis.exists(RedisConstants.CATCH_LOCK_KEY) && "1".equals(jedis.get(RedisConstants.CATCH_LOCK_KEY))){
+    @Transactional
+    public boolean tryLock(){
+        if(redisTemplate.hasKey(RedisConstants.CATCH_LOCK_KEY) && "1".equals(redisTemplate.opsForValue().get(RedisConstants.CATCH_LOCK_KEY))){
             return false;
         }else{
-            return jedis.setex(RedisConstants.CATCH_LOCK_KEY, RedisConstants.CATCH_LOCK_TTL, "1").equals("OK");
+            redisTemplate.opsForValue().set(RedisConstants.CATCH_LOCK_KEY, "1");
+            redisTemplate.expire(RedisConstants.CATCH_LOCK_KEY, Duration.ofSeconds(RedisConstants.CATCH_LOCK_TTL));
+            return true;
         }
     }
 
-    public static void  unlock(){
-        jedis.del(RedisConstants.CATCH_LOCK_KEY);
+    public void  unlock(){
+        redisTemplate.delete(RedisConstants.CATCH_LOCK_KEY);
     }
 
-    public static  boolean setToJSONStr(String key,Object object){
+    public boolean setToJSONStr(String key,Object object){
         if(object == null){
-            return jedis.set(key, "").equals("OK");
+            redisTemplate.opsForValue().set(key, "");
+            return true;
         }else {
-            return jedis.set(key, JSON.toJSONString(object)).equals("OK");
+            redisTemplate.opsForValue().set(key, JSON.toJSONString(object));
+            return true;
         }
     }
 
-    public static boolean setExToJSONStr(String key,Long seconds,Object object){
+    public boolean setExToJSONStr(String key,Long seconds,Object object){
         if(object == null){
-            return jedis.setex(key, seconds, "").equals("OK");
+            redisTemplate.opsForValue().set(key, "");
+            redisTemplate.expire(key, Duration.ofSeconds(seconds));
+            return true;
         }else{
-            return jedis.setex(key, seconds, JSON.toJSONString(object)).equals("OK");
+            redisTemplate.opsForValue().set(key, JSON.toJSONString(object));
+            redisTemplate.expire(key, Duration.ofSeconds(seconds));
+            return true;
         }
     }
 
     //添加逻辑失效属性
-    public static boolean setExPropertyToJSONStr( String key,Long seconds,Object object){
+    public boolean setExPropertyToJSONStr( String key,Long seconds,Object object){
         if(object == null){
-            return jedis.set(key, "").equals("OK");
+            redisTemplate.opsForValue().set(key, "");
+            return true;
         }else {
             JSONObject jsonObject = (JSONObject) JSON.toJSON(object);
             jsonObject.put(RedisConstants.PROPERTY_EXPIRE_KEY, LocalTime.now().plusSeconds(seconds));
-            return jedis.setex(key, seconds, JSON.toJSONString(jsonObject)).equals("OK");
+            redisTemplate.opsForValue().set(key, JSON.toJSONString(jsonObject));
+            return true;
         }
     }
 
-    public static Object getBean(String key,Class<?> clazz){
-        String value = jedis.get(key);
+    public Object getBean(String key,Class<?> clazz){
+        String value = (String) redisTemplate.opsForValue().get(key);
         if (StringUtils.isEmpty(value)){
             return null;
         }else{
@@ -65,13 +84,13 @@ public class RedisClient {
         }
     }
 
-    public static JSONArray getBeanList(String key){
+    public JSONArray getBeanList(String key){
 
-        String value = jedis.get(key);
+        String value = (String) redisTemplate.opsForValue().get(key);
         if(StringUtils.isEmpty(value)){
             return null;
         }else {
-            return JSON.parseArray(jedis.get(key));
+            return JSON.parseArray(value);
         }
 
     }
@@ -93,7 +112,7 @@ public class RedisClient {
 
     //逻辑失效
     public boolean setToJSONStrUseLockUseLogEx(String key,Object object){
-        String json = jedis.get(key);
+        String json = (String) redisTemplate.opsForValue().get(key);
         if(json == null){
             return false;
         }

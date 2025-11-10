@@ -57,9 +57,9 @@ public class UserController {
      * @return 无
      */
     @PostMapping("/logout")
-    public Result logout(HttpSession session){
+    public Result logout(@RequestHeader("Authorization") String token){
         // TODO 实现登出功能
-        return userService.logout(session);
+        return userService.logout(token);
     }
 
     @GetMapping("/me")

@@ -1,6 +1,6 @@
 package com.hmdp.service.impl;
 
-import com.alibaba.fastjson.JSONArray;
+
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.client.RedisClient;
@@ -8,11 +8,12 @@ import com.hmdp.dto.Result;
 import com.hmdp.entity.Voucher;
 import com.hmdp.mapper.VoucherMapper;
 import com.hmdp.entity.SeckillVoucher;
-import com.hmdp.pool.JedisConnectPool;
+
 import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherService;
 import com.hmdp.utils.RedisConstants;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -32,7 +33,8 @@ import java.util.List;
 @Service
 public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> implements IVoucherService {
 
-    private final Jedis jedis = JedisConnectPool.getJedis();
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @Resource
     private ISeckillVoucherService seckillVoucherService;
@@ -40,24 +42,27 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
     @Autowired
     private RedisClient redisClient;
 
+    /**
+     * 获取店铺所有的优惠卷
+     * @param shopId
+     * @return
+     */
     @Override
     public Result queryVoucherOfShop(Long shopId) {
-        String voucherListStr = jedis.get(RedisConstants.REDIS_CATCH_VOUCHER_LIST_KEY + shopId);
-        if(StringUtils.isEmpty(voucherListStr)){
+        String key = RedisConstants.REDIS_CATCH_VOUCHER_LIST_KEY + shopId;
+        Object voucherList =  redisClient.getBeanList(key);
+
+        if(StringUtils.isEmpty(voucherList)){
             // 查询优惠券信息
             List<Voucher> vouchers = getBaseMapper().queryVoucherOfShop(shopId);
-
             //缓存商铺的优惠卷信息
-            RedisClient.setExToJSONStr(RedisConstants.REDIS_CATCH_VOUCHER_LIST_KEY + shopId, RedisConstants.CACHE_VOUCHERS_LIST_TTL,
-                    ObjectUtils.isNotEmpty(vouchers)? vouchers : "");
-
+            redisClient.setExToJSONStr(key, RedisConstants.CACHE_VOUCHERS_LIST_TTL,vouchers);
             // 返回结果
             return Result.ok(vouchers);
 
         }else{
-            return Result.ok(RedisClient.getBeanList(RedisConstants.REDIS_CATCH_VOUCHER_LIST_KEY + shopId));
+            return Result.ok(voucherList);
         }
-
 
     }
 

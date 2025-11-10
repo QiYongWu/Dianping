@@ -1,7 +1,13 @@
 package com.hmdp.utils;
 
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.hmdp.client.RedisClient;
 import com.hmdp.entity.User;
-import com.hmdp.pool.JedisConnectPool;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -9,9 +15,14 @@ import redis.clients.jedis.Jedis;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.time.Duration;
 
+@Component
 public class LoginInterceptor implements HandlerInterceptor {
-    private final Jedis jedis = JedisConnectPool.getJedis();
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private RedisClient redisClient;
     /**
      * preHandle：在请求处理前，拦截器可以进行预处理（如权限校验），并决定是否继续处理请求。
      * postHandle：在请求处理后，视图渲染前，可以对 ModelAndView 进行修改或添加数据。
@@ -33,22 +44,32 @@ public class LoginInterceptor implements HandlerInterceptor {
             }
         */
 
-        UserHolder.removeUser();
+        if(ObjectUtils.isEmpty(UserHolder.getUser())){
+            response.sendError(401,"请先登录！");
+            return false;
+        }
 
         String token = request.getHeader("Authorization");
-        if(ObjectUtils.isEmpty(token)){
+
+        if(StringUtils.isBlank(token)){
             response.sendError(401,"请先登录！");
             return false;
         }
 
-        if(!jedis.exists(RedisConstants.LOGIN_TOKEN_KEY + token)){
+        String key = RedisConstants.LOGIN_TOKEN_KEY + token;
+
+        if(!stringRedisTemplate.hasKey( key)){
             response.sendError(401,"请先登录！");
             return false;
         }
 
-        jedis.expire(RedisConstants.LOGIN_TOKEN_KEY, RedisConstants.REDIS_TOKEN_EXPIRE);
-        User user = BeanUtil.buildUser(jedis.hgetAll(RedisConstants.LOGIN_TOKEN_KEY + token));
-        UserHolder.saveUser(user);
+        stringRedisTemplate.expire(key, Duration.ofSeconds(RedisConstants.REDIS_TOKEN_EXPIRE));
+
+        Object user = redisClient.getBean(key, User.class);
+        if(user != null){
+            UserHolder.saveUser((User) user);
+        }
+
         return true;
     }
 

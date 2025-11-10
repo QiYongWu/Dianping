@@ -3,7 +3,7 @@ package com.hmdp.utils;
 public class RedisConstants {
     public static final String LOGIN_CODE_KEY = "login:code:";
     public static final Long LOGIN_CODE_TTL = 2L;
-    public static final String LOGIN_TOKEN_KEY = "login:token:";
+
     public static final Long LOGIN_USER_TTL = 36000L;
 
     public static final Long CACHE_NULL_TTL = 2L;
@@ -25,9 +25,9 @@ public class RedisConstants {
     public static final Long REDIS_TOKEN_EXPIRE = 3600L;
 
     //########################### config info ###################################
-    public static final int REDIS_MAX_TOTAL = 208;
-    public static final int REDIS_MAX_IDLE = 8;
-    public static final int REDIS_MIN_IDLE = 0;
+    public static final int REDIS_MAX_TOTAL = 200;
+    public static final int REDIS_MAX_IDLE = 50;
+    public static final int REDIS_MIN_IDLE = 20;
     public static final int REDIS_CONNECT_TIMEOUT = 3000;
 
     public static final String REDIS_HOST = "47.107.240.108";
@@ -51,4 +51,10 @@ public class RedisConstants {
     public static final String REDIS_CATCH_VOUCHER_LIST_KEY = "cache:voucher:list:";
     public static final long CACHE_VOUCHERS_LIST_TTL = 300L + RandomUtil.createRandomNum() * 60;
     public static final String PROPERTY_EXPIRE_KEY = "expire:time" ;
+
+    public static final long LOGIN_VERIFY_CODE_TTL = 120;
+    public static final String LOGIN_VERIFY_CODE = "user:login:verify:code:";
+
+    public static final String LOGIN_TOKEN_KEY = "user:login:token:";
+    public static final long LOGIN_TOKEN_TTL = 3600L;
 }
