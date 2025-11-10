@@ -44,7 +44,7 @@ public class BaseInterceptor implements HandlerInterceptor {
             User user = (User) redisClient.getBean(key, User.class);
             UserHolder.saveUser(user);
             // 刷新token有效期，保持用户处于登录状态
-            stringRedisTemplate.expire(key, Duration.ofSeconds(RedisConstants.REDIS_TOKEN_EXPIRE));
+            stringRedisTemplate.expire(key, Duration.ofSeconds(RedisConstants.LOGIN_TOKEN_TTL));
             return true;
         }catch (Exception e){
             log.error("出错:{}",e.getMessage());

@@ -1,28 +1,7 @@
 package com.hmdp.utils;
 
 public class RedisConstants {
-    public static final String LOGIN_CODE_KEY = "login:code:";
-    public static final Long LOGIN_CODE_TTL = 2L;
 
-    public static final Long LOGIN_USER_TTL = 36000L;
-
-    public static final Long CACHE_NULL_TTL = 2L;
-
-    public static final Long CACHE_SHOP_TTL = 600L + RandomUtil.createRandomNum() * 60;
-    public static final String CACHE_SHOP_KEY = "cache:shop:";
-
-    public static final String LOCK_SHOP_KEY = "lock:shop:";
-    public static final Long LOCK_SHOP_TTL = 10L;
-
-    public static final String SECKILL_STOCK_KEY = "seckill:stock:";
-    public static final String BLOG_LIKED_KEY = "blog:liked:";
-    public static final String FEED_KEY = "feed:";
-    public static final String SHOP_GEO_KEY = "shop:geo:";
-    public static final String USER_SIGN_KEY = "sign:";
-
-    public static final String LOGIN_USER_KEY = "login:user:";
-
-    public static final Long REDIS_TOKEN_EXPIRE = 3600L;
 
     //########################### config info ###################################
     public static final int REDIS_MAX_TOTAL = 200;
@@ -37,19 +16,22 @@ public class RedisConstants {
 
     //############################ constant keys ###################################
 
-    //验证码
-    public static final String REDIS_KEY_USER_LOGIN_CODE = "user:login:code:";
 
-    public static final String REDIS_CATCH_SHOP_KEY = "cache:shop:";
+    public static final String CATCH_SHOP_KEY = "cache:shop:";
 
-    public static final String REDIS_CATCH_SHOP_TYPE_KEY = "cache:shop:type:";
+    public static final Long CACHE_SHOP_TTL = 600L + RandomUtil.createRandomNum() * 60;
 
-    public static final long CACHE_SHOP_TYPE_TTL = 600L + RandomUtil.createRandomNum() * 60;
+    public static final String CATCH_SHOP_TYPE_KEY = "cache:shop:type:";
 
-    public static final String CATCH_LOCK_KEY = "catch:shop:lock";
-    public static final long CATCH_LOCK_TTL = 10L;
-    public static final String REDIS_CATCH_VOUCHER_LIST_KEY = "cache:voucher:list:";
+    //异步锁
+    public static final String REDIS_ASYNC_LOCK_KEY = "lock:async:";
+
+    public static final long  REDIS_ASYNC_LOCK_TTL = 15L;
+
+    public static final String CATCH_VOUCHER_LIST_KEY = "cache:voucher:list:";
+
     public static final long CACHE_VOUCHERS_LIST_TTL = 300L + RandomUtil.createRandomNum() * 60;
+
     public static final String PROPERTY_EXPIRE_KEY = "expire:time" ;
 
     public static final long LOGIN_VERIFY_CODE_TTL = 120;

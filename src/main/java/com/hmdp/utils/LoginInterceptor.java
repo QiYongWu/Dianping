@@ -63,7 +63,7 @@ public class LoginInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        stringRedisTemplate.expire(key, Duration.ofSeconds(RedisConstants.REDIS_TOKEN_EXPIRE));
+        stringRedisTemplate.expire(key, Duration.ofSeconds(RedisConstants.LOGIN_TOKEN_TTL));
 
         Object user = redisClient.getBean(key, User.class);
         if(user != null){

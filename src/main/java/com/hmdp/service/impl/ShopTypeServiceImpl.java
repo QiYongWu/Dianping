@@ -37,10 +37,9 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
     @Autowired
     private RedisClient redisClient;
 
-
     @Override
     public List<ShopType> list() {
-        String key = RedisConstants.REDIS_CATCH_SHOP_TYPE_KEY;
+        String key = RedisConstants.CATCH_SHOP_TYPE_KEY;
 
         if(redisTemplate.hasKey( key)){
             Object shopTypes = redisClient.getBeanList(key);

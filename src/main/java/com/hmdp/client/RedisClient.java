@@ -25,19 +25,20 @@ public class RedisClient {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+    //异步锁
     @Transactional
     public boolean tryLock(){
-        if(redisTemplate.hasKey(RedisConstants.CATCH_LOCK_KEY) && "1".equals(redisTemplate.opsForValue().get(RedisConstants.CATCH_LOCK_KEY))){
+        if(redisTemplate.hasKey(RedisConstants.REDIS_ASYNC_LOCK_KEY) && "1".equals(redisTemplate.opsForValue().get(RedisConstants.REDIS_ASYNC_LOCK_KEY))){
             return false;
         }else{
-            redisTemplate.opsForValue().set(RedisConstants.CATCH_LOCK_KEY, "1");
-            redisTemplate.expire(RedisConstants.CATCH_LOCK_KEY, Duration.ofSeconds(RedisConstants.CATCH_LOCK_TTL));
+            redisTemplate.opsForValue().set(RedisConstants.REDIS_ASYNC_LOCK_KEY, "1");
+            redisTemplate.expire(RedisConstants.REDIS_ASYNC_LOCK_KEY, Duration.ofSeconds(RedisConstants.REDIS_ASYNC_LOCK_TTL));
             return true;
         }
     }
 
     public void  unlock(){
-        redisTemplate.delete(RedisConstants.CATCH_LOCK_KEY);
+        redisTemplate.delete(RedisConstants.REDIS_ASYNC_LOCK_KEY);
     }
 
     public boolean setToJSONStr(String key,Object object){

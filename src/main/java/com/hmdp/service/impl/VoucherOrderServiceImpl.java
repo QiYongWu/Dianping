@@ -83,7 +83,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                 .update();
 
         if (success) {
-            redisTemplate.delete(RedisConstants.REDIS_CATCH_VOUCHER_LIST_KEY + voucherDetail.getShopId());
+            redisTemplate.delete(RedisConstants.CATCH_VOUCHER_LIST_KEY + voucherDetail.getShopId());
 
             //创建订单
             VoucherOrder voucherOrder = new VoucherOrder();

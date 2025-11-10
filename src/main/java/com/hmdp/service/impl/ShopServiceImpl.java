@@ -33,17 +33,18 @@ import java.io.Serializable;
 public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IShopService {
 
     @Autowired
-    private RedisTemplate  redisTemplate;
+    private RedisTemplate redisTemplate;
 
     @Autowired
     private RedisClient redisClient;
 
 
+    //更改商铺信息
     @Transactional
     @Override
     public boolean updateById(Shop entity) {
 
-        String key = RedisConstants.REDIS_CATCH_SHOP_KEY + entity.getId();
+        String key = RedisConstants.CATCH_SHOP_KEY + entity.getId();
 
         boolean save = super.updateById(entity);
         if(save) {
@@ -62,7 +63,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     @Override
     public Shop getById(Serializable id) {
 
-        String key = RedisConstants.REDIS_CATCH_SHOP_KEY + id;
+        String key = RedisConstants.CATCH_SHOP_KEY + id;
 
         if(redisTemplate.hasKey( key)){
 

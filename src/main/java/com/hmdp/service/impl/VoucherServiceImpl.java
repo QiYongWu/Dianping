@@ -49,7 +49,7 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
      */
     @Override
     public Result queryVoucherOfShop(Long shopId) {
-        String key = RedisConstants.REDIS_CATCH_VOUCHER_LIST_KEY + shopId;
+        String key = RedisConstants.CATCH_VOUCHER_LIST_KEY + shopId;
         Object voucherList =  redisClient.getBeanList(key);
 
         if(StringUtils.isEmpty(voucherList)){
