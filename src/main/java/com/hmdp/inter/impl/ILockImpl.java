@@ -25,11 +25,33 @@ public class ILockImpl implements ILock {
     private String lastFix;
     private StringRedisTemplate stringRedisTemplate;
 
+    /**
+     * 全局唯一性：
+     * static 确保了 JVM_ID 在类加载时只会生成一次，并且在整个 JVM 中是唯一的，不会随着对象实例化而重复生成。
+     *
+     * 线程共享：
+     * 所有线程都能访问同一个 JVM_ID，保证了线程之间对这个标识的共享。
+     *
+     * 效率：
+     * 如果不加 static，每次实例化对象时都会生成一个新的 UUID，这样就失去了原本的唯一性和全局共享的优势。
+     */
+
+    /**
+     * 类级别的变量和方法	static 成员是 类级别的，所有对象共享这一个变量或方法。
+     * 不依赖对象实例	静态方法可以直接通过类名调用，不需要实例化类。
+     * 内存管理	静态成员存储在 方法区，只存在一个副本，多个实例共享。
+     * 访问限制	静态方法无法直接访问实例变量和实例方法，但可以访问其他静态变量和方法。
+     * 静态代码块	在类加载时执行一次，通常用于类初始化。
+     * 静态内部类	静态内部类是类级别的，不需要外部类的实例即可使用。
+     */
+    //区分不同的JVM，避免不同的JVM间造成的线程冲突
+    private static final String JVM_ID = UUID.randomUUID().toString();
+
 
     public ILockImpl(StringRedisTemplate stringRedisTemplate, String lastFix) {
         this.lastFix = lastFix;
         this.stringRedisTemplate = stringRedisTemplate;
-        this.lockKey = RedisConstants.REDIS_DISTRIBUTED_LOCK_KEY + lastFix;
+        this.lockKey = JVM_ID + RedisConstants.REDIS_DISTRIBUTED_LOCK_KEY + lastFix;
     }
 
     @Override
