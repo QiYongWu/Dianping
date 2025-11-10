@@ -7,20 +7,20 @@ import com.hmdp.entity.SeckillVoucher;
 import com.hmdp.entity.User;
 import com.hmdp.entity.Voucher;
 import com.hmdp.entity.VoucherOrder;
+import com.hmdp.inter.impl.ILockImpl;
 import com.hmdp.mapper.VoucherOrderMapper;
 
 import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.service.IVoucherService;
-import com.hmdp.utils.RedisConstants;
-import com.hmdp.utils.RedisIdWorker;
-import com.hmdp.utils.SystemConstants;
-import com.hmdp.utils.UserHolder;
+import com.hmdp.utils.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.jni.Time;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,18 +55,22 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @Resource
     private ISeckillVoucherService seckillVoucherService;
 
-    @Autowired
-    private RedisIdWorker RedisIdWorker;
 
     @Resource
     private  VoucherOrderMapper voucherOrderMapper;
 
-    private final Lock lock = new ReentrantLock();
 
     @Autowired
     private RedisIdWorker redisIdWorker;
+
     @Autowired
     private RedisClient redisClient;
+
+    @Autowired
+    private LockUtil lockUtil;
+    @Qualifier("stringRedisTemplate")
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     //秒杀优惠卷卷并生产订单
     @Override
@@ -91,35 +95,29 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     }
 
     private Long createVoucherOrder(Long voucherId) throws RuntimeException{
-        boolean checkFlag = false;
         User user = UserHolder.getUser();
-        String prefix = "create_voucher_order:" + voucherId  + "_user:" + user.getId();
-        for (int i = 0; i < SystemConstants.MAX_TRY_LOCK_COUNT; i++) {
-            if(redisClient.tryLock(prefix)) {
-                try {
-                    Integer count = voucherOrderMapper.selectCount
-                            (new QueryWrapper<VoucherOrder>()
-                                    .eq("user_id", user.getId())
-                                    .eq("voucher_id", voucherId));
-                    if (count > 0) {
-                        log.error("用户:{{}}已购买过此优惠卷！", user.getId());
-                        return null;
-                    }
-                    checkFlag = true;
-                    break;
-                }catch (Exception e){
-                    log.error("出错！" + e.getMessage());
-                }finally {
-                    redisClient.unlock(prefix);
-                }
-            }else{
-                Time.sleep(1);
-            }
+        Long userId = user.getId();
+        Long currentTheadId = Thread.currentThread().getId();
+        String lastFix = currentTheadId.toString() + voucherId + userId;
+
+        //构造线程+优惠卷id+用户id锁，防止线程并发执行判断用户是否购买过此优惠卷
+        ILockImpl lock = new ILockImpl(stringRedisTemplate, lastFix + user.getId());
+
+        boolean tryLockResult = lockUtil.tryLockLoop(lock, 10, 1000);
+
+        if(!tryLockResult){
+            throw new RuntimeException("服务器繁忙，请稍后重试！");
         }
 
-        if(!checkFlag){
-            throw new RuntimeException("判断用户是否已经获取过优惠卷失败！");
+        Integer count = voucherOrderMapper.selectCount
+                (new QueryWrapper<VoucherOrder>()
+                        .eq("user_id", user.getId())
+                        .eq("voucher_id", voucherId));
+        if (count > 0) {
+            log.error("用户:{{}}已购买过此优惠卷！", user.getId());
+            return null;
         }
+
 
         //获取秒杀优惠卷信息
         SeckillVoucher voucher = seckillVoucherService.getById(voucherId);
@@ -138,7 +136,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
 
 
-        //减少库存
+        //基于乐观锁减少库存
         boolean success = seckillVoucherService.update()
                 .setSql("stock = stock - 1")
                 .eq("voucher_id", voucherId)

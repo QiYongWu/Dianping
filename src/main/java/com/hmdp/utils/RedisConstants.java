@@ -25,7 +25,7 @@ public class RedisConstants {
 
     //分布式锁
     public static final String REDIS_DISTRIBUTED_LOCK_KEY = "lock:distributed:";
-    public static final long REDIS_DISTRIBUTED_LOCK_TTL = 15L;
+    public static final long REDIS_DISTRIBUTED_LOCK_TTL = 3L;
 
 
     //异步锁
