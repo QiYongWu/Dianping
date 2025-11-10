@@ -88,15 +88,32 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     }
 
     private Long createVoucherOrder(Long voucherId) throws RuntimeException{
+        boolean checkFlag = false;
+        for (int i = 0; i < SystemConstants.MAX_TRY_LOCK_COUNT; i++) {
+            if(lock.tryLock()) {
+                try {
+                    User user = UserHolder.getUser();
+                    Integer count = voucherOrderMapper.selectCount
+                            (new QueryWrapper<VoucherOrder>()
+                                    .eq("user_id", user.getId())
+                                    .eq("voucher_id", voucherId));
+                    if (count > 0) {
+                        log.error("用户:{{}}已购买过此优惠卷！", user.getId());
+                        return null;
+                    }
+                    checkFlag = true;
+                }catch (Exception e){
+                    log.error("出错！" + e.getMessage());
+                }finally {
+                    lock.unlock();
+                }
+            }else{
+                Time.sleep(1);
+            }
+        }
 
-        User user = UserHolder.getUser();
-        Integer count = voucherOrderMapper.selectCount
-                (new QueryWrapper<VoucherOrder>()
-                .eq("user_id", user.getId())
-                .eq("voucher_id", voucherId));
-        if(count > 0){
-            log.error("用户:{{}}已购买过此优惠卷！",user.getId());
-            return null;
+        if(!checkFlag){
+            throw new RuntimeException("判断用户是否已经获取过优惠卷失败！");
         }
 
         //获取秒杀优惠卷信息
