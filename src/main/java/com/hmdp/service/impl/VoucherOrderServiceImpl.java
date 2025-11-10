@@ -97,10 +97,10 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private Long createVoucherOrder(Long voucherId) throws RuntimeException{
         User user = UserHolder.getUser();
         Long userId = user.getId();
-        Long currentTheadId = Thread.currentThread().getId();
-        String lastFix = currentTheadId.toString() + voucherId + userId;
 
-        //构造线程+优惠卷id+用户id锁，防止线程并发执行判断用户是否购买过此优惠卷
+        String lastFix =  voucherId.toString() + userId;
+
+        //构造【优惠卷id+用户id】的分布式锁，防止线程并发执行：判断用户是否购买过此优惠卷 发生异常
         ILockImpl lock = new ILockImpl(stringRedisTemplate, lastFix + user.getId());
 
         boolean tryLockResult = lockUtil.tryLockLoop(lock, 10, 1000);
@@ -108,14 +108,21 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         if(!tryLockResult){
             throw new RuntimeException("服务器繁忙，请稍后重试！");
         }
+        try {
+            Integer count = voucherOrderMapper.selectCount
+                    (new QueryWrapper<VoucherOrder>()
+                            .eq("user_id", user.getId())
+                            .eq("voucher_id", voucherId));
+            if (count > 0) {
+                log.error("用户:{{}}已购买过此优惠卷！", user.getId());
+                throw  new RuntimeException("您不能重复领取同一张优惠卷！");
+            }
 
-        Integer count = voucherOrderMapper.selectCount
-                (new QueryWrapper<VoucherOrder>()
-                        .eq("user_id", user.getId())
-                        .eq("voucher_id", voucherId));
-        if (count > 0) {
-            log.error("用户:{{}}已购买过此优惠卷！", user.getId());
-            return null;
+        }catch (Exception e){
+            log.error("判断用户是否领取过优惠卷失败");
+            throw  new RuntimeException("您不能重复领取同一张优惠卷！");
+        } finally {
+            lock.unlock();
         }
 
 

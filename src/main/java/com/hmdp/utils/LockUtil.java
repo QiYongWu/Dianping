@@ -17,7 +17,6 @@ public class LockUtil {
                 Thread.sleep(sleepMills);
             } catch (InterruptedException e) {
                 e.printStackTrace();
-
             }
         }
         return false;
