@@ -69,22 +69,18 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
         log.warn("开始秒杀优惠卷！优惠卷id:{}", voucherId);
         for (int i = 0; i < SystemConstants.MAX_TRY_LOCK_COUNT; i++) {
-            if(lock.tryLock()) {
-                log.warn("获取悲观锁成功！开始秒杀优惠卷！总尝试次数:{}", i);
-                try {
-                    return Result.ok(createVoucherOrder(voucherId));
-                }catch (Exception e){
-                    return Result.fail("服务器错误！" + e.getMessage());
-                }finally {
-                    lock.unlock();
+            try {
+                return Result.ok(createVoucherOrder(voucherId));
+            }catch (Exception e){
+                if(e.getMessage().contains("扣减库存失败")) {
+                    log.error("获取乐观锁失败，开始第{}次尝试", i + 1);
+                }else{
+                    return Result.fail(e.getMessage());
                 }
-            }else{
-                //休眠1s后重试
-                Time.sleep(1);
             }
-
+            Time.sleep(1);
         }
-        log.error("秒杀优惠卷失败。获取悲观锁失败!");
+
         return Result.fail("服务器繁忙！请稍后再试！");
     }
 
@@ -111,6 +107,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         boolean success = seckillVoucherService.update()
                 .setSql("stock = stock - 1")
                 .eq("voucher_id", voucherId)
+                .eq("stock", stock)
                 .update();
 
         if (success) {
@@ -131,7 +128,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             }
 
         } else {
-            throw new RuntimeException("领取优惠卷失败！");
+            throw new RuntimeException("扣减库存失败！");
         }
 
     }
