@@ -157,6 +157,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             //创建订单
             VoucherOrder voucherOrder = new VoucherOrder();
             voucherOrder.setId(redisIdWorker.nextId("coupon:order"));
+
             voucherOrder.setUserId(UserHolder.getUser().getId());
             voucherOrder.setVoucherId(voucherId);
 

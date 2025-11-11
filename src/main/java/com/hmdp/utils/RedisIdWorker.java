@@ -5,9 +5,11 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import redis.clients.jedis.Jedis;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class RedisIdWorker {
@@ -24,6 +26,8 @@ public class RedisIdWorker {
         String key = "id:" + keyPrefix + ":" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         //redis 自增功能，若key值不存在，自动创建key并赋值为1
         Long count = redisTemplate.opsForValue().increment(key, 1);
+
+        redisTemplate.expire(key, 1, TimeUnit.DAYS);
 
         return (epochSecond << 32) | count;
 

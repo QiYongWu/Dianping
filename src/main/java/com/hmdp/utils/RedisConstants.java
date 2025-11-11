@@ -21,6 +21,7 @@ public class RedisConstants {
 
     public static final Long CACHE_SHOP_TTL = 600L + RandomUtil.createRandomNum() * 60;
 
+    //商铺类型
     public static final String CATCH_SHOP_TYPE_KEY = "cache:shop:type:";
 
     //分布式锁

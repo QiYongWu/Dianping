@@ -11,10 +11,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -36,6 +39,9 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
 
     @Autowired
     private RedisClient redisClient;
+    @Qualifier("stringRedisTemplate")
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @Override
     public List<ShopType> list() {
@@ -47,6 +53,7 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
         }else {
             List<ShopType> shopTypes = super.list();
             redisClient.setToJSONStrUseLock(key, shopTypes);
+            stringRedisTemplate.expire(key, Duration.ofSeconds(RedisConstants.CACHE_SHOP_TTL));
             return shopTypes;
         }
 
