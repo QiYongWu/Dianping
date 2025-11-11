@@ -2,8 +2,10 @@ package com.hmdp.service;
 
 import com.hmdp.entity.Blog;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.hmdp.entity.User;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * <p>
@@ -18,4 +20,6 @@ public interface IBlogService extends IService<Blog> {
     void likeBlog(Long id);
 
     List<Blog> getHotBlogs(Integer current);
+
+    Set<User> queryBlogLikes(Long id);
 }

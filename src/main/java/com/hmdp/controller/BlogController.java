@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.Set;
 
 /**
  * <p>
@@ -80,4 +81,12 @@ public class BlogController {
         }
         return Result.ok(blog);
     }
+
+    //点赞排行榜，把最早点赞的5个用户显示出来
+    @GetMapping("/likes/{id}")
+    public Result queryBlogLikes(@PathVariable("id") Long id) {
+        Set<User> users = blogService.queryBlogLikes(id);
+        return Result.ok(users);
+    }
+
 }

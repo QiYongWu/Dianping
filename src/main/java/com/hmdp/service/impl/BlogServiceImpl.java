@@ -11,12 +11,17 @@ import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -33,13 +38,16 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     private RedisTemplate redisTemplate;
 
     @Autowired
+    private RedissonClient redissonClient;
+
+    @Autowired
     private IUserService userService;
 
     @Override
     @Transactional
     public void likeBlog(Long id) {
         //判断当前登录的用户是否已经点赞过该条blog
-        boolean idLiked = checkIsLiked(UserHolder.getUser().getId(),  id);
+        boolean idLiked = checkIsLiked(UserHolder.getUser().getId(), id);
         //如果有，提示用户对同一blog点赞多次
         if(idLiked){
             log.warn("用户：{}。已经点赞过该条blog：{}",UserHolder.getUser().getNickName(), id);
@@ -48,8 +56,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         //如果没有，则点赞,并同步到redis中
         this.update()
                 .setSql("liked = liked + 1").eq("id", id).update();
-
-        redisTemplate.opsForSet().add(RedisConstants.LIKE_BLOG_USERS + id, UserHolder.getUser().getId().toString());
+        redisTemplate.opsForZSet().add(RedisConstants.LIKE_BLOG_USERS + id, UserHolder.getUser().getId().toString(), System.currentTimeMillis());
 
     }
 
@@ -73,14 +80,28 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         return records;
     }
 
+    // 查询blog的点赞用户，返回最先点赞的5个人的列表
+    @Override
+    public Set<User> queryBlogLikes(Long id) {
+        //0->4 分数从低到高，分数越低，点赞时间越早
+        Set<String> userIds = redisTemplate.opsForZSet().range(RedisConstants.LIKE_BLOG_USERS + id, 0, 4);
+        Set<User> users = new HashSet<>();
+        if(!ObjectUtils.isEmpty(userIds)){
+            users = userIds.stream().map(userId -> {
+                User user = userService.getById(Long.parseLong(userId));
+                user.setIcon(user.getIcon());
+                return user;
+            }).collect(Collectors.toSet());
+        }
+        return users;
+    }
+
     /**
      * 检查用户是否已经点赞过某条blog
      * @param
      * @return
      */
     private boolean checkIsLiked(Long userId,Long blogId) {
-
-        return redisTemplate.opsForSet().isMember(RedisConstants.LIKE_BLOG_USERS + blogId, userId.toString());
-
+        return !ObjectUtils.isEmpty(redisTemplate.opsForZSet().score(RedisConstants.LIKE_BLOG_USERS + blogId, userId.toString()));
     }
 }
