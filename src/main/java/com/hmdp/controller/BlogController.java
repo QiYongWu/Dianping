@@ -80,4 +80,13 @@ public class BlogController {
         });
         return Result.ok(records);
     }
+
+    @GetMapping("/{id}")
+    public Result showBlogDetails(@PathVariable("id") Long id) {
+        Blog blog = blogService.getById(id);
+        if (blog == null) {
+            return Result.fail("数据不存在");
+        }
+        return Result.ok(blog);
+    }
 }
