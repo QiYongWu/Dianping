@@ -12,7 +12,7 @@ public class RedisConstants {
     public static final String REDIS_HOST = "47.107.240.108";
     public static final int REDIS_PORT = 6379;
 
-    public static final int REDIS_DATABASE = 0;
+    public static final int REDIS_DATABASE = 3;
 
     //############################ constant keys ###################################
 

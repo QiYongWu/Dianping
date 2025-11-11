@@ -10,6 +10,7 @@ import com.hmdp.entity.VoucherOrder;
 import com.hmdp.inter.impl.ILockImpl;
 import com.hmdp.mapper.VoucherOrderMapper;
 
+import com.hmdp.pool.ThreadPool;
 import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -17,6 +18,9 @@ import com.hmdp.service.IVoucherService;
 import com.hmdp.utils.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.jni.Time;
+import org.redisson.Redisson;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -29,7 +33,9 @@ import redis.clients.jedis.Jedis;
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -55,10 +61,8 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @Resource
     private ISeckillVoucherService seckillVoucherService;
 
-
     @Resource
     private  VoucherOrderMapper voucherOrderMapper;
-
 
     @Autowired
     private RedisIdWorker redisIdWorker;
@@ -68,110 +72,152 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     @Autowired
     private LockUtil lockUtil;
+
     @Qualifier("stringRedisTemplate")
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
-    //秒杀优惠卷卷并生产订单
+    @Autowired
+    private RedissonClient redissonClient;
+
+    private static final ExecutorService executorService = ThreadPool.getCacheDeletePool();
+
+    private static final String JVM_ID = UUID.randomUUID().toString();
+
+    //秒杀优惠卷并生成订单
     @Override
     @Transactional
-    public Result seckillVoucher(Long voucherId) {
+    public Result seckillVoucher(Long voucherId) throws InterruptedException,RuntimeException {
 
+        //获取秒杀优惠卷信息
+        SeckillVoucher voucher = seckillVoucherService.getById(voucherId);
+
+        //获取优惠卷详细信息
+        Voucher voucherDetail = voucherService.getById(voucherId);
+
+        if(!checkVoucherEffective(voucher,voucherDetail)){
+            return Result.fail("优惠卷不可用！活动未开始或库存不足");
+        }
         log.warn("开始秒杀优惠卷！优惠卷id:{}", voucherId);
-        for (int i = 0; i < SystemConstants.MAX_TRY_LOCK_COUNT; i++) {
-            try {
-                return Result.ok(createVoucherOrder(voucherId));
-            }catch (Exception e){
-                if(e.getMessage().contains("扣减库存失败")) {
-                    log.error("获取乐观锁失败，开始第{}次尝试", i + 1);
-                }else{
-                    return Result.fail(e.getMessage());
-                }
-            }
-            Time.sleep(1);
+
+        //一人一单校验
+        if(!checkUserGetVoucher(voucherId)){
+            return Result.fail("服务器繁忙或您已领取过此优惠卷");
         }
 
-        return Result.fail("服务器繁忙！请稍后再试！");
+
+        //减少库存
+        if(!reduceStock(voucherId,voucher.getStock())){
+            //减少库存失败，回滚事务
+            throw new RuntimeException("服务器繁忙！");
+        }
+
+        //创建订单
+        Long orderId = createVoucherOrder(voucherDetail,voucherId);
+        if(orderId == null){
+            return Result.fail("创建订单失败，请联系管理员！");
+        }else{
+            return Result.ok(orderId);
+        }
+
     }
 
-    private Long createVoucherOrder(Long voucherId) throws RuntimeException{
+
+    /**
+     * 判断用户是否已经获得过此优惠卷
+     * @param voucherId
+     * @return
+     */
+    private boolean checkUserGetVoucher(Long voucherId) throws InterruptedException{
         User user = UserHolder.getUser();
+
         Long userId = user.getId();
 
         String lastFix =  voucherId.toString() + userId;
 
         //构造【优惠卷id+用户id】的分布式锁，防止线程并发执行：判断用户是否购买过此优惠卷 发生异常
-        ILockImpl lock = new ILockImpl(stringRedisTemplate, lastFix + user.getId());
 
-        boolean tryLockResult = lockUtil.tryLockLoop(lock, 10, 1000);
+        RLock lock = redissonClient.getLock(JVM_ID + RedisConstants.REDIS_DISTRIBUTED_LOCK_KEY + lastFix);
+
+        boolean tryLockResult = lock.tryLock(2, 1, TimeUnit.SECONDS);
 
         if(!tryLockResult){
-            throw new RuntimeException("服务器繁忙，请稍后重试！");
-        }
-        try {
-            Integer count = voucherOrderMapper.selectCount
-                    (new QueryWrapper<VoucherOrder>()
-                            .eq("user_id", user.getId())
-                            .eq("voucher_id", voucherId));
-            if (count > 0) {
-                log.error("用户:{{}}已购买过此优惠卷！", user.getId());
-                throw  new RuntimeException("您不能重复领取同一张优惠卷！");
-            }
-
-        }catch (Exception e){
-            log.error("判断用户是否领取过优惠卷失败");
-            throw  new RuntimeException("您不能重复领取同一张优惠卷！");
-        } finally {
-            lock.unlock();
+            log.error("用户:{}。获取分布式锁失败！无法判断用户是否已经获得过此优惠卷",userId);
+            return false;
         }
 
-
-        //获取秒杀优惠卷信息
-        SeckillVoucher voucher = seckillVoucherService.getById(voucherId);
-        //获取优惠卷信息
-        Voucher voucherDetail = voucherService.getById(voucherId);
-
-        if (voucher.getBeginTime().isAfter(LocalDateTime.now()) || voucher.getEndTime().isBefore(LocalDateTime.now())) {
-            log.error("秒杀优惠卷失败。优惠卷:{{}}未开始或已结束！",voucherDetail.getSubTitle());
-            throw new RuntimeException("优惠卷未开始或已结束！");
+        Integer count = voucherOrderMapper.selectCount
+                (new QueryWrapper<VoucherOrder>()
+                        .eq("user_id", user.getId())
+                        .eq("voucher_id", voucherId));
+        if (count > 0) {
+            log.error("用户:{{}}已经获得过此优惠卷！", user.getId());
+            return false;
         }
 
-        Integer stock = voucher.getStock();
-        if (stock <= 0) {
-            log.error("秒杀优惠卷失败。优惠卷:{{}}库存不足。当前库存数:{{}}！",voucherDetail.getSubTitle(), stock);
-            throw new RuntimeException("库存不足！");
-        }
+        return true;
+    }
 
+    /**
+     * 减少库存
+     * @param voucherId
+     * @return
+     */
 
+    private boolean reduceStock(Long voucherId,Integer stock){
         //基于乐观锁减少库存
         boolean success = seckillVoucherService.update()
                 .setSql("stock = stock - 1")
                 .eq("voucher_id", voucherId)
                 .eq("stock", stock)
                 .update();
+        return success;
+    }
 
-        if (success) {
-            //删除对应店铺缓存的优惠卷信息
-            redisTemplate.delete(RedisConstants.CATCH_VOUCHER_LIST_KEY + voucherDetail.getShopId());
+    /**
+     * 创建订单
+     * @param voucherId
+     * @return
+     */
+    private Long createVoucherOrder( Voucher voucherDetail,Long voucherId){
 
-            //创建订单
-            VoucherOrder voucherOrder = new VoucherOrder();
-            voucherOrder.setId(redisIdWorker.nextId("coupon:order"));
+        //删除对应店铺缓存的优惠卷信息
+        redisTemplate.delete(RedisConstants.CATCH_VOUCHER_LIST_KEY + voucherDetail.getShopId());
 
-            voucherOrder.setUserId(UserHolder.getUser().getId());
-            voucherOrder.setVoucherId(voucherId);
+        //创建订单
+        VoucherOrder voucherOrder = new VoucherOrder();
+        voucherOrder.setId(redisIdWorker.nextId("coupon:order"));
 
-            int insertResult = voucherOrderMapper.insert(voucherOrder);
-            if (insertResult <= 0) {
-                throw new RuntimeException("创建订单失败！");
-            } else {
-                return voucherOrder.getId();
-            }
+        voucherOrder.setUserId(UserHolder.getUser().getId());
+        voucherOrder.setVoucherId(voucherId);
 
+        int insertResult = voucherOrderMapper.insert(voucherOrder);
+        if (insertResult <= 0) {
+            return null;
         } else {
-            throw new RuntimeException("扣减库存失败！");
+            return voucherOrder.getId();
         }
 
     }
+
+
+    /**
+     * 判断优惠卷是否有效
+     */
+    private boolean checkVoucherEffective (SeckillVoucher voucher,Voucher voucherDetail) {
+
+        if (voucher.getBeginTime().isAfter(LocalDateTime.now()) || voucher.getEndTime().isBefore(LocalDateTime.now())) {
+            log.error("秒杀优惠卷失败。优惠卷:{{}}未开始或已结束！", voucherDetail.getSubTitle());
+            return false;
+        }
+
+        Integer stock = voucher.getStock();
+        if (stock <= 0) {
+            log.error("秒杀优惠卷失败。优惠卷:{{}}库存不足。当前库存数:{{}}！", voucherDetail.getSubTitle(), stock);
+            return false;
+        }
+        return true;
+    }
+
 
 }
