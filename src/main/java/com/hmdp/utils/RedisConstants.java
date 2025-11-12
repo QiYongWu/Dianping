@@ -46,4 +46,6 @@ public class RedisConstants {
     public static final String LOGIN_TOKEN_KEY = "user:login:token:";
     public static final long LOGIN_TOKEN_TTL = 3600L;
     public static final String LIKE_BLOG_USERS = "info:like:blog";
+
+    public static final String INFO_FOLLOW_BLOGER_KEY = "info:follow:bloger:";
 }

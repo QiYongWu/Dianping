@@ -1,20 +1,59 @@
 package com.hmdp.service.impl;
 
+import com.hmdp.dto.Result;
 import com.hmdp.entity.Follow;
+import com.hmdp.entity.User;
 import com.hmdp.mapper.FollowMapper;
+import com.hmdp.service.IBlogService;
 import com.hmdp.service.IFollowService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.service.IUserService;
+import com.hmdp.utils.RedisConstants;
+import com.hmdp.utils.UserHolder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-/**
- * <p>
- *  服务实现类
- * </p>
- *
- * @author 虎哥
- * @since 2021-12-22
- */
 @Service
 public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> implements IFollowService {
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    @Autowired
+    private IBlogService blogService;
+
+    @Autowired
+    private IUserService userService;
+
+    @Override
+    public Result isFollow(Long blogerId) {
+
+        Long currentLoginUserId = UserHolder.getUser().getId();
+
+        String key = RedisConstants.INFO_FOLLOW_BLOGER_KEY + blogerId;
+
+        if(!redisTemplate.hasKey( key) || ! redisTemplate.opsForSet().isMember(key, currentLoginUserId)){
+            return Result.ok(false);
+        }else{
+            return Result.ok(true);
+        }
+
+    }
+
+    @Override
+    public Result follow(Long blogerId, Boolean isFollow) {
+
+        Long currentLoginUserId = UserHolder.getUser().getId();
+
+        String key = RedisConstants.INFO_FOLLOW_BLOGER_KEY + blogerId;
+        if(isFollow){
+            redisTemplate.opsForSet().add(key, currentLoginUserId);
+        }else{
+            redisTemplate.opsForSet().remove(key, currentLoginUserId);
+        }
+
+        return Result.ok();
+
+    }
 }
