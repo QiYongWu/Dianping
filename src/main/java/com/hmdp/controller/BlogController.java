@@ -10,6 +10,7 @@ import com.hmdp.service.IBlogService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -26,6 +27,7 @@ import java.util.Set;
  */
 @RestController
 @RequestMapping("/blog")
+@Slf4j
 public class BlogController {
 
     @Resource
@@ -86,5 +88,15 @@ public class BlogController {
         Set<User> users = blogService.queryBlogLikes(id);
         return Result.ok(users);
     }
+
+    @GetMapping("/of/user")
+    public Result showUserBlogs(@RequestParam("id") Long id, @RequestParam("current") int current) {
+        log.info("入参id:{}；current:{}",id,current);
+        Page<Blog> page = blogService.query()
+                .eq("user_id", id).page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
+        List<Blog> records = page.getRecords();
+        return Result.ok(records);
+    }
+
 
 }

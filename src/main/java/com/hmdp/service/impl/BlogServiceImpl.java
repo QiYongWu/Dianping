@@ -1,6 +1,7 @@
 package com.hmdp.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hmdp.dto.Result;
 import com.hmdp.entity.Blog;
 import com.hmdp.entity.User;
 import com.hmdp.entity.UserInfo;
@@ -112,6 +113,11 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         blog.setIcon(user.getIcon());
         blog.setIsLike(checkIsLiked(UserHolder.getUser().getId(), blog.getId()));
         return blog;
+    }
+
+    @Override
+    public Result showUserBlogs(Long id) {
+        return null;
     }
 
     /**
