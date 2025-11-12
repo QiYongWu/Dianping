@@ -40,8 +40,8 @@ public class BlogController {
         // 获取登录用户
         User user = UserHolder.getUser();
         blog.setUserId(user.getId());
-        // 保存探店博文
-        blogService.save(blog);
+        // 保存探店博文并推送给关注的粉丝
+        blogService.saveAndPushBlog(blog);
         // 返回id
         return Result.ok(blog.getId());
     }
@@ -98,5 +98,9 @@ public class BlogController {
         return Result.ok(records);
     }
 
-
+    //展示关注用户的博客
+    @GetMapping("/of/follow")
+    public Result showFollowerBlogs(@RequestParam("lastId") Object lastId) {
+        return blogService.queryFollowBlog();
+    }
 }

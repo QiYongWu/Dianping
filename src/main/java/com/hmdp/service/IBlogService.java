@@ -27,4 +27,8 @@ public interface IBlogService extends IService<Blog> {
     Blog showBlogDetails(Long id);
 
     Result showUserBlogs(Long id);
+
+    void saveAndPushBlog(Blog blog);
+
+    Result queryFollowBlog();
 }

@@ -69,16 +69,16 @@ public class UserController {
         return Result.ok(UserHolder.getUser());
     }
 
+    /**
+     * 展示用户主页
+     * @param userId
+     * @return
+     */
     @GetMapping("/info/{id}")
     public Result info(@PathVariable("id") Long userId){
         // 查询详情
-        UserInfo info = userInfoService.getById(userId);
-        if (info == null) {
-            // 没有详情，应该是第一次查看详情
-            return Result.ok();
-        }
-        info.setCreateTime(null);
-        info.setUpdateTime(null);
+        UserInfo info = userInfoService.showUserInfo(userId);
+
         // 返回
         return Result.ok(info);
     }

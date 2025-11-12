@@ -1,5 +1,7 @@
 package com.hmdp.service.impl;
 
+import cn.hutool.json.JSONUtil;
+import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Blog;
@@ -79,7 +81,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
             Long userId = blog.getUserId();
             User user = userService.getById(userId);
             blog.setName(user.getNickName());
-            blog.setIsLike(checkIsLiked(UserHolder.getUser().getId(), blog.getId()));
+            if(UserHolder.getUser()!=null) {
+                blog.setIsLike(checkIsLiked(UserHolder.getUser().getId(), blog.getId()));
+            }
             blog.setIcon(user.getIcon());
         });
 
@@ -119,6 +123,32 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     public Result showUserBlogs(Long id) {
         return null;
     }
+
+    @Override
+    @Transactional
+    public void saveAndPushBlog(Blog blog) {
+        this.save(blog);
+        //推送给关注的粉丝
+        Set<Integer> followedUserIds = redisTemplate.opsForSet().members(RedisConstants.INFO_FANS_KEY  + blog.getUserId());
+        followedUserIds.forEach(followedUserId -> {
+            redisTemplate.opsForZSet().add(RedisConstants.INFO_FANS_GET_BLOGS_KEY + followedUserId, blog, System.currentTimeMillis());
+        });
+    }
+
+    /**
+     * 查询当前登录用户所关注的人的blog
+     * @return
+     */
+
+    @Override
+    public Result queryFollowBlog() {
+
+        Set<Blog> getBlogs = redisTemplate.opsForZSet().range(RedisConstants.INFO_FANS_GET_BLOGS_KEY + UserHolder.getUser().getId(), 0, 4);
+        return Result.ok(getBlogs);
+
+    }
+
+
 
     /**
      * 检查用户是否已经点赞过某条blog

@@ -47,5 +47,12 @@ public class RedisConstants {
     public static final long LOGIN_TOKEN_TTL = 3600L;
     public static final String LIKE_BLOG_USERS = "info:like:blog";
 
+    //记录用户关注的博主
     public static final String INFO_FOLLOWS_KEY = "info:follow:";
+
+    //记录关注博主的用户
+    public static final String INFO_FANS_KEY = "info:fans:";
+
+    //粉丝接收关注的博主的博客
+    public static final String INFO_FANS_GET_BLOGS_KEY = "info:fans:get:blogs:";
 }
