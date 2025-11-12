@@ -14,6 +14,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 @Service
 public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> implements IFollowService {
 
@@ -54,5 +58,22 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
         }
 
         return Result.ok();
+    }
+
+    @Override
+    public Result common(Long blogerId) {
+
+        Long currentLoginUserId = UserHolder.getUser().getId();
+        String key1 = RedisConstants.INFO_FOLLOWS_KEY + currentLoginUserId;
+        String key2 = RedisConstants.INFO_FOLLOWS_KEY + blogerId;
+        Set<Integer> intersection = redisTemplate.opsForSet().intersect(key1, key2);
+
+        List< User> commonFollowUsers = new ArrayList<>();
+        intersection.forEach(id -> {
+            User user = userService.getById(id);
+            commonFollowUsers.add(user);
+        });
+
+        return Result.ok(commonFollowUsers);
     }
 }

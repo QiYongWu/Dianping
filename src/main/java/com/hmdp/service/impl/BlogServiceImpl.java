@@ -3,9 +3,11 @@ package com.hmdp.service.impl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.entity.Blog;
 import com.hmdp.entity.User;
+import com.hmdp.entity.UserInfo;
 import com.hmdp.mapper.BlogMapper;
 import com.hmdp.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.service.IUserInfoService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.SystemConstants;
@@ -39,6 +41,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
 
     @Autowired
     private RedissonClient redissonClient;
+
+    @Autowired
+    private IUserInfoService userInfoMapper;
 
     @Autowired
     private IUserService userService;
@@ -94,6 +99,19 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
             }).collect(Collectors.toSet());
         }
         return users;
+    }
+
+    @Override
+    public Blog showBlogDetails(Long id) {
+        Blog blog = this.getById(id);
+        if(blog == null){
+            return null;
+        }
+        User user = userService.getById(blog.getUserId());
+        blog.setName(user.getNickName());
+        blog.setIcon(user.getIcon());
+        blog.setIsLike(checkIsLiked(UserHolder.getUser().getId(), blog.getId()));
+        return blog;
     }
 
     /**

@@ -75,10 +75,8 @@ public class BlogController {
 
     @GetMapping("/{id}")
     public Result showBlogDetails(@PathVariable("id") Long id) {
-        Blog blog = blogService.getById(id);
-        if (blog == null) {
-            return Result.fail("数据不存在");
-        }
+        //Blog blog = blogService.getById(id);
+        Blog blog = blogService.showBlogDetails(id);
         return Result.ok(blog);
     }
 
