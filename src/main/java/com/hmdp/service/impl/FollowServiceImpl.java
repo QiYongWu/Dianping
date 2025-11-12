@@ -31,9 +31,9 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
 
         Long currentLoginUserId = UserHolder.getUser().getId();
 
-        String key = RedisConstants.INFO_FOLLOW_BLOGER_KEY + blogerId;
+        String key = RedisConstants.INFO_FOLLOWS_KEY + currentLoginUserId;
 
-        if(!redisTemplate.hasKey( key) || ! redisTemplate.opsForSet().isMember(key, currentLoginUserId)){
+        if(!redisTemplate.hasKey( key) || ! redisTemplate.opsForSet().isMember(key, blogerId)){
             return Result.ok(false);
         }else{
             return Result.ok(true);
@@ -46,14 +46,13 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
 
         Long currentLoginUserId = UserHolder.getUser().getId();
 
-        String key = RedisConstants.INFO_FOLLOW_BLOGER_KEY + blogerId;
+        String key = RedisConstants.INFO_FOLLOWS_KEY + currentLoginUserId;
         if(isFollow){
-            redisTemplate.opsForSet().add(key, currentLoginUserId);
+            redisTemplate.opsForSet().add(key, blogerId);
         }else{
-            redisTemplate.opsForSet().remove(key, currentLoginUserId);
+            redisTemplate.opsForSet().remove(key, blogerId);
         }
 
         return Result.ok();
-
     }
 }
